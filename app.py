@@ -14,30 +14,27 @@ CHANNEL_LINK = "https://t.me/termuxwalee"
 bot = telebot.TeleBot(API_TOKEN)
 app = Flask(__name__)
 
-# --- 2. FORMATTING LOGIC (Click-to-Copy & +Phone) ---
+# --- 2. FORMATTING LOGIC ---
 def format_result(res, title="✅ *Record Found\\!*"):
-    """Data ko clickable aur +phone ke saath format karta hai"""
-    
-    # Phone number formatting (+ add karna)
+    # Phone number ke aage sirf + lagana (No Click-to-Copy)
     raw_phone = str(res.get('Phone', 'N/A')).strip()
     if raw_phone != 'N/A' and not raw_phone.startswith('+'):
         phone = f"\\+{raw_phone}"
     else:
-        phone = raw_phone.replace('+', '\\+') # Special char escape for MarkdownV2
+        phone = raw_phone.replace('+', '\\+')
 
-    # MarkdownV2 mein special characters escape karne hote hain
+    # Baaki data clickable banane ke liye
     name = f"{res.get('First_Name', 'N/A')} {res.get('Last_Name', '')}".replace('-', '\\-').replace('.', '\\.')
     user_id = str(res.get('User_ID', 'N/A')).replace('-', '\\-')
     username = str(res.get('Username', 'N/A')).replace('_', '\\_').replace('*', '\\*')
 
-    # Response layout (Backticks `` make it clickable to copy)
+    # Final Response Layout
     response = (
         f"{title}\n\n"
         f"👤 Name: `{name}`\n"
-        f"📞 Phone: `{phone}`\n"
+        f"📞 Phone: {phone}\n" # Backticks hata diye hain
         f"🆔 ID: `{user_id}`\n"
-        f"🌐 User: `@{username}`\n\n"
-        f"💡 *Detail par click karke copy karein*"
+        f"🌐 User: `@{username}`"
     )
     return response
 
