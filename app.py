@@ -1,121 +1,99 @@
 import telebot
 import requests
-import os
-import random
-import time
-from flask import Flask
-from threading import Thread
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton
+from telebot import types
 
 # --- CONFIG ---
-BOT_TOKEN = "8435434656:AAEzE0AK1TvNRsDzXxycUyWdMKzuES-TfAI" # Apna Token Check Kar Lena
-API_URL = "https://tfqdeadlo-tgdatabase.hf.space/search"
+API_TOKEN = '8435434656:AAEzE0AK1TvNRsDzXxycUyWdMKzuES-TfAI'  # BotFather se mila token yahan daalo
+BASE_URL = "https://tfqdeadlo-tgdatabase.hf.space"
 
-bot = telebot.TeleBot(BOT_TOKEN)
-app = Flask(__name__)
+bot = telebot.TeleBot(API_TOKEN)
 
-@app.route('/')
-def home():
-    return "Bot is Alive!", 200
-
-# --- KEYBOARD ---
-def main_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add(KeyboardButton("🔍 Search Info"), KeyboardButton("🎲 Random Search"))
-    markup.add(KeyboardButton("👨‍💻 Developer"), KeyboardButton("📢 Channel"))
+# --- KEYBOARD SETUP ---
+def main_menu():
+    markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    btn1 = types.KeyboardButton("🔍 Search ID")
+    btn2 = types.KeyboardButton("🎲 Random Search")
+    btn3 = types.KeyboardButton("👤 My Profile")
+    btn4 = types.KeyboardButton("ℹ️ Info / Help")
+    markup.add(btn1, btn2, btn3, btn4)
     return markup
 
-# --- START ---
+# --- HANDLERS ---
+
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
-    welcome_text = (
-        "<b>🤖 Premium Search Bot Active!</b>\n\n"
-        "Niche diye gaye buttons ka use karein ya direct ID bhejein."
-    )
-    bot.send_message(message.chat.id, welcome_text, parse_mode="HTML", reply_markup=main_keyboard())
+def start(message):
+    welcome_msg = "🔥 **Welcome to 28M Database Bot!**\n\nNiche diye gaye buttons ka use karke search karein."
+    bot.send_message(message.chat.id, welcome_msg, parse_mode="Markdown", reply_markup=main_menu())
 
-# --- SMART RANDOM SEARCH (No More Fails) ---
-def get_random_user(message):
-    status_msg = bot.send_message(message.chat.id, "🎲 <i>Searching for any valid user...</i>", parse_mode="HTML")
-    
-    found = False
-    attempts = 0
-    # Hum 20 baar koshish karenge alag-alag random IDs par
-    while not found and attempts < 20:
-        attempts += 1
-        # Yahan range wo rakhna jo tere database mein IDs ki hai (e.g. 1 to 5000)
-        test_id = str(random.randint(1, 5000)) 
-        try:
-            r = requests.get(f"{API_URL}?user_id={test_id}", timeout=5)
-            if r.status_code == 200:
-                data = r.json()
-                if data.get("results"):
-                    res = data["results"][0]
-                    response_text = (
-                        "<b>🎲 Random Result Found!</b>\n"
-                        "──────────────────\n"
-                        f"👤 <b>Name:</b> <code>{res.get('First_Name', 'N/A')}</code>\n"
-                        f"📞 <b>Phone:</b> <code>{res.get('Phone_Number', 'N/A')}</code>\n"
-                        f"🆔 <b>User ID:</b> <code>{res.get('User_ID', 'N/A')}</code>\n"
-                        "──────────────────\n"
-                        "<b>Powered By:</b> @TFQdeadlox636"
-                    )
-                    bot.edit_message_text(response_text, message.chat.id, status_msg.message_id, parse_mode="HTML")
-                    found = True
-                    break
-        except:
-            continue
-            
-    if not found:
-        bot.edit_message_text("❌ <b>Random Search Failed!</b>\nDatabase mein koi valid entry nahi mili. Range check karein ya dobara click karein.", message.chat.id, status_msg.message_id, parse_mode="HTML")
-
-# --- MAIN SEARCH ---
-def perform_search(message, user_id):
-    status_msg = bot.send_message(message.chat.id, "⏳ <i>Searching...</i>", parse_mode="HTML")
-    try:
-        r = requests.get(f"{API_URL}?user_id={user_id}", timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            results = data.get("results", [])
-            if results:
-                res = results[0]
-                text = (
-                    "<b>✅ Result Found!</b>\n"
-                    "──────────────────\n"
-                    f"👤 <b>Name:</b> <code>{res.get('First_Name', 'N/A')}</code>\n"
-                    f"📞 <b>Phone:</b> <code>{res.get('Phone_Number', 'N/A')}</code>\n"
-                    f"🆔 <b>User ID:</b> <code>{res.get('User_ID', 'N/A')}</code>\n"
-                    "──────────────────\n"
-                    "<b>Powered By:</b> @TFQdeadlox636"
-                )
-                bot.edit_message_text(text, message.chat.id, status_msg.message_id, parse_mode="HTML")
-            else:
-                bot.edit_message_text("❌ <b>Not found in database!</b>", message.chat.id, status_msg.message_id, parse_mode="HTML")
-        else:
-            bot.edit_message_text("❌ <b>Not found in database!</b>", message.chat.id, status_msg.message_id, parse_mode="HTML")
-    except:
-        bot.edit_message_text("❌ <b>Not found in database!</b>", message.chat.id, status_msg.message_id, parse_mode="HTML")
-
-# --- HANDLER ---
 @bot.message_handler(func=lambda message: True)
-def handle_all(message):
-    txt = message.text
-    if txt == "🔍 Search Info":
-        bot.send_message(message.chat.id, "🔍 <b>ID Bhejo:</b>\nBas number type karke send karo.", parse_mode="HTML")
-    elif txt == "🎲 Random Search":
-        Thread(target=get_random_user, args=(message,)).start()
-    elif txt == "👨‍💻 Developer":
-        bot.send_message(message.chat.id, "👨‍💻 <b>Developer:</b> @TFQdeadlox636", parse_mode="HTML")
-    elif txt == "📢 Channel":
-        bot.send_message(message.chat.id, "📢 <b>Channel:</b> @termuxwalee", parse_mode="HTML")
-    elif txt.isdigit():
-        perform_search(message, txt.strip())
-    else:
-        bot.reply_to(message, "⚠️ Buttons use karein ya ID bhejein.")
+def handle_buttons(message):
+    chat_id = message.chat.id
+    text = message.text
 
-def run_flask():
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    if text == "🔍 Search ID":
+        msg = bot.send_message(chat_id, "🆔 **Please enter the User ID to search:**")
+        bot.register_next_step_handler(msg, process_search)
 
-if __name__ == "__main__":
-    Thread(target=run_flask).start()
-    bot.infinity_polling()
+    elif text == "🎲 Random Search":
+        bot.send_message(chat_id, "⏳ Fetching a random record from 2.8 Crore rows...")
+        try:
+            r = requests.get(f"{BASE_URL}/random")
+            data = r.json()
+            if data.get("status") == "success":
+                res = data["result"]
+                response = (f"🎲 **Random Result:**\n\n"
+                            f"👤 Name: {res['First_Name']} {res['Last_Name']}\n"
+                            f"📞 Phone: {res['Phone']}\n"
+                            f"🆔 ID: {res['User_ID']}\n"
+                            f"🌐 User: @{res['Username']}")
+                bot.send_message(chat_id, response, parse_mode="Markdown")
+            else:
+                bot.send_message(chat_id, "❌ Error fetching random data.")
+        except Exception as e:
+            bot.send_message(chat_id, "⚠️ API Server is busy or sleeping. Try again.")
+
+    elif text == "👤 My Profile":
+        user = message.from_user
+        profile_msg = (f"👤 **Your Profile:**\n\n"
+                       f"📛 Name: {user.first_name}\n"
+                       f"🆔 Your ID: `{user.id}`\n"
+                       f"✨ Username: @{user.username}")
+        bot.send_message(chat_id, profile_msg, parse_mode="Markdown")
+
+    elif text == "ℹ️ Info / Help":
+        help_text = ("ℹ️ **Bot Information**\n\n"
+                     "📍 Database: 2.8 Crore Users\n"
+                     "⚡ Speed: 0.06s\n"
+                     "🛠 Built by: Your Name\n\n"
+                     "Search button dabao aur ID daalo result paane ke liye.")
+        bot.send_message(chat_id, help_text, parse_mode="Markdown")
+
+# --- SEARCH LOGIC ---
+def process_search(message):
+    uid = message.text.strip()
+    if not uid.isdigit():
+        bot.send_message(message.chat.id, "❌ Invalid ID! Please enter numbers only.")
+        return
+
+    bot.send_message(message.chat.id, f"🔎 Searching for ID: `{uid}`...", parse_mode="Markdown")
+    
+    try:
+        r = requests.get(f"{BASE_URL}/search?uid={uid}")
+        data = r.json()
+        
+        if data.get("status") == "success":
+            res = data["result"]
+            response = (f"✅ **Record Found!**\n\n"
+                        f"👤 Name: {res['First_Name']} {res['Last_Name']}\n"
+                        f"📞 Phone: {res['Phone']}\n"
+                        f"🆔 ID: {res['User_ID']}\n"
+                        f"🌐 User: @{res['Username']}")
+            bot.send_message(message.chat.id, response, parse_mode="Markdown")
+        else:
+            bot.send_message(message.chat.id, "❌ No record found for this ID.")
+    except Exception as e:
+        bot.send_message(message.chat.id, "⚠️ API connection error.")
+
+# --- RUN BOT ---
+print("🤖 Bot is running...")
+bot.infinity_polling()
