@@ -1,4 +1,4 @@
 pyTelegramBotAPI
 requests
 flask
-huggingface_hub
+gunicorn
