@@ -3,8 +3,12 @@ import requests
 from telebot import types
 
 # --- CONFIG ---
-API_TOKEN = '8435434656:AAEzE0AK1TvNRsDzXxycUyWdMKzuES-TfAI'  # BotFather se mila token yahan daalo
+API_TOKEN = '8435434656:AAEzE0AK1TvNRsDzXxycUyWdMKzuES-TfAI'  # BotFather wala token yahan daalo
 BASE_URL = "https://tfqdeadlo-tgdatabase.hf.space"
+
+# Updated Details
+DEVELOPER_ID = "@TFQdeadlox636" 
+CHANNEL_LINK = "https://t.me/termuxwalee" 
 
 bot = telebot.TeleBot(API_TOKEN)
 
@@ -13,8 +17,8 @@ def main_menu():
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     btn1 = types.KeyboardButton("🔍 Search ID")
     btn2 = types.KeyboardButton("🎲 Random Search")
-    btn3 = types.KeyboardButton("👤 My Profile")
-    btn4 = types.KeyboardButton("ℹ️ Info / Help")
+    btn3 = types.KeyboardButton("👨‍💻 Developer")
+    btn4 = types.KeyboardButton("📢 Channel")
     markup.add(btn1, btn2, btn3, btn4)
     return markup
 
@@ -22,7 +26,7 @@ def main_menu():
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    welcome_msg = "🔥 **Welcome to 28M Database Bot!**\n\nNiche diye gaye buttons ka use karke search karein."
+    welcome_msg = "🔥 **Welcome!**\n\nDatabase search karne ke liye niche diye gaye buttons ka use karein."
     bot.send_message(message.chat.id, welcome_msg, parse_mode="Markdown", reply_markup=main_menu())
 
 @bot.message_handler(func=lambda message: True)
@@ -35,7 +39,7 @@ def handle_buttons(message):
         bot.register_next_step_handler(msg, process_search)
 
     elif text == "🎲 Random Search":
-        bot.send_message(chat_id, "⏳ Fetching a random record from 2.8 Crore rows...")
+        bot.send_message(chat_id, "⏳ Fetching a random record...")
         try:
             r = requests.get(f"{BASE_URL}/random")
             data = r.json()
@@ -47,35 +51,27 @@ def handle_buttons(message):
                             f"🆔 ID: {res['User_ID']}\n"
                             f"🌐 User: @{res['Username']}")
                 bot.send_message(chat_id, response, parse_mode="Markdown")
-            else:
-                bot.send_message(chat_id, "❌ Error fetching random data.")
-        except Exception as e:
-            bot.send_message(chat_id, "⚠️ API Server is busy or sleeping. Try again.")
+        except:
+            bot.send_message(chat_id, "⚠️ API Server Error.")
 
-    elif text == "👤 My Profile":
-        user = message.from_user
-        profile_msg = (f"👤 **Your Profile:**\n\n"
-                       f"📛 Name: {user.first_name}\n"
-                       f"🆔 Your ID: `{user.id}`\n"
-                       f"✨ Username: @{user.username}")
-        bot.send_message(chat_id, profile_msg, parse_mode="Markdown")
+    elif text == "👨‍💻 Developer":
+        dev_msg = f"👨‍💻 **Bot Developer:**\n\nContact: {DEVELOPER_ID}\n\nSupport ya queries ke liye message karein."
+        bot.send_message(chat_id, dev_msg, parse_mode="Markdown")
 
-    elif text == "ℹ️ Info / Help":
-        help_text = ("ℹ️ **Bot Information**\n\n"
-                     "📍 Database: 2.8 Crore Users\n"
-                     "⚡ Speed: 0.06s\n"
-                     "🛠 Built by: Your Name\n\n"
-                     "Search button dabao aur ID daalo result paane ke liye.")
-        bot.send_message(chat_id, help_text, parse_mode="Markdown")
+    elif text == "📢 Channel":
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton("Join Channel 🚀", url=CHANNEL_LINK)
+        markup.add(btn)
+        bot.send_message(chat_id, f"📢 **Join @termuxwalee for latest updates:**", reply_markup=markup, parse_mode="Markdown")
 
 # --- SEARCH LOGIC ---
 def process_search(message):
     uid = message.text.strip()
     if not uid.isdigit():
-        bot.send_message(message.chat.id, "❌ Invalid ID! Please enter numbers only.")
+        bot.send_message(message.chat.id, "❌ Invalid ID! Sirf numbers daalein.")
         return
 
-    bot.send_message(message.chat.id, f"🔎 Searching for ID: `{uid}`...", parse_mode="Markdown")
+    bot.send_message(message.chat.id, f"🔎 Searching for `{uid}`...", parse_mode="Markdown")
     
     try:
         r = requests.get(f"{BASE_URL}/search?uid={uid}")
@@ -90,10 +86,10 @@ def process_search(message):
                         f"🌐 User: @{res['Username']}")
             bot.send_message(message.chat.id, response, parse_mode="Markdown")
         else:
-            bot.send_message(message.chat.id, "❌ No record found for this ID.")
-    except Exception as e:
+            bot.send_message(message.chat.id, "❌ No record found.")
+    except:
         bot.send_message(message.chat.id, "⚠️ API connection error.")
 
 # --- RUN BOT ---
-print("🤖 Bot is running...")
+print("🤖 Bot is running with final settings...")
 bot.infinity_polling()
