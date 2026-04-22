@@ -11,6 +11,7 @@ API_TOKEN = '8435434656:AAH4FzsCtgUw4V9PXnj5GN_HJbdA659Df2s'
 BASE_URL = "https://tfqdeadlo-tgdatabase.hf.space"
 DEVELOPER_ID = "@TFQdeadlox636"
 CHANNEL_LINK = "https://t.me/termuxwalee"
+DB_LINK = "https://t.me/+MN_TO1H8nmMzNzM1" # Bot Database Link
 
 bot = telebot.TeleBot(API_TOKEN)
 app = Flask(__name__)
@@ -57,9 +58,10 @@ def main_menu():
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     btn1 = types.KeyboardButton("🚀 Search ID")
     btn2 = types.KeyboardButton("🎯 Random")
-    btn3 = types.KeyboardButton("👑 Dev")
-    btn4 = types.KeyboardButton("📡 Channel")
-    markup.add(btn1, btn2, btn3, btn4)
+    btn3 = types.KeyboardButton("📊 Bot Database") # Naya Button
+    btn4 = types.KeyboardButton("👑 Dev")
+    btn5 = types.KeyboardButton("📡 Channel")
+    markup.add(btn1, btn2, btn3, btn4, btn5)
     return markup
 
 # --- 5. HANDLERS ---
@@ -80,18 +82,21 @@ def handle_buttons(message):
         bot.register_next_step_handler(msg, process_search)
 
     elif message.text == "🎯 Random":
-        # Temporary message send karna
         temp_msg = bot.send_message(chat_id, "🌀 *Fetching random data...*", parse_mode="MarkdownV2")
         try:
             r = requests.get(f"{BASE_URL}/random", timeout=20)
             data = r.json()
             if data.get("status") == "success":
                 resp = format_result(data["result"], title="🎯 *RANDOM DATA*")
-                # Pehle result bhejna, phir temporary message delete karna
                 bot.send_message(chat_id, resp, parse_mode="MarkdownV2")
                 bot.delete_message(chat_id, temp_msg.message_id)
         except:
             bot.edit_message_text("❌ *Server Timeout\\!*", chat_id, temp_msg.message_id, parse_mode="MarkdownV2")
+
+    elif message.text == "📊 Bot Database":
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("Access Database 📂", url=DB_LINK))
+        bot.send_message(chat_id, "📊 *Click the button below to access the database channel:*", reply_markup=markup, parse_mode="MarkdownV2")
 
     elif message.text == "👑 Dev":
         bot.send_message(chat_id, f"👑 *Developer:* `{DEVELOPER_ID}`", parse_mode="MarkdownV2")
@@ -109,7 +114,6 @@ def process_search(message):
         bot.send_message(chat_id, "⚠️ *Please enter a valid numeric ID\\!*", parse_mode="MarkdownV2")
         return
 
-    # Temporary "Searching" message
     search_msg = bot.send_message(chat_id, f"🔍 *Searching for:* `{uid}`", parse_mode="MarkdownV2")
     
     try:
@@ -118,15 +122,21 @@ def process_search(message):
         if data.get("status") == "success":
             resp = format_result(data["result"])
             bot.send_message(chat_id, resp, parse_mode="MarkdownV2")
-            # Result aane ke baad "Searching" wala message delete
             bot.delete_message(chat_id, search_msg.message_id)
         else:
             bot.edit_message_text(f"❌ *ID `{uid}` not found in our database\\.*", chat_id, search_msg.message_id, parse_mode="MarkdownV2")
     except:
         bot.edit_message_text("⚠️ *API Error\\! Please try again\\.*", chat_id, search_msg.message_id, parse_mode="MarkdownV2")
 
-# --- 6. STARTUP ---
+# --- 6. STARTUP & POLLING FIX ---
 if __name__ == '__main__':
+    # Flask start karna
     Thread(target=run_flask, daemon=True).start()
+    
+    # 409 Conflict Error Fix: Purane Webhooks aur connections delete karna
+    print("🧹 Cleaning up old sessions...")
+    bot.remove_webhook()
+    time.sleep(1) 
+    
     print("🤖 Bot is active and ready...")
     bot.infinity_polling()
