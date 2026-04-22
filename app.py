@@ -7,7 +7,7 @@ from threading import Thread
 from telebot import types
 
 # --- 1. CONFIGURATION ---
-API_TOKEN = '8435434656:AAH4FzsCtgUw4V9PXnj5GN_HJbdA659Df2s' 
+API_TOKEN = '8435434656:AAGxTX5s9EuGI-qWV0Iy8OwyJ97SEa6b8Kw' 
 BASE_URL = "https://tfqdeadlo-tgdatabase.hf.space"
 DEVELOPER_ID = "@TFQdeadlox636"
 CHANNEL_LINK = "https://t.me/termuxwalee"
@@ -16,48 +16,54 @@ DB_LINK = "https://t.me/+MN_TO1H8nmMzNzM1"
 bot = telebot.TeleBot(API_TOKEN)
 app = Flask(__name__)
 
-# --- 2. FORMATTING LOGIC ---
-def format_result(res, title="💠 *RESULT FOUND*"):
+# --- 2. FORMATTING LOGIC (Minimal & Clean) ---
+def format_result(res, title="RESULT FOUND"):
+    # Phone number (+ prefix only)
     raw_phone = str(res.get('Phone', 'N/A')).strip()
-    phone = f"\\+{raw_phone}" if raw_phone != 'N/A' and not raw_phone.startswith('+') else raw_phone.replace('+', '\\+')
+    if raw_phone != 'N/A' and not raw_phone.startswith('+'):
+        phone = f"+{raw_phone}"
+    else:
+        phone = raw_phone
 
+    # Username (@ prefix only)
     raw_user = str(res.get('Username', 'N/A')).strip()
     if raw_user != 'N/A' and not raw_user.startswith('@'):
-        username = f"@{raw_user}".replace('_', '\\_')
+        username = f"@{raw_user}"
     else:
-        username = raw_user.replace('_', '\\_')
+        username = raw_user
 
-    name = f"{res.get('First_Name', 'N/A')} {res.get('Last_Name', '')}".replace('-', '\\-').replace('.', '\\.')
-    user_id = str(res.get('User_ID', 'N/A')).replace('-', '\\-')
+    # Name & ID (Clickable)
+    name = f"{res.get('First_Name', 'N/A')} {res.get('Last_Name', '')}"
+    user_id = str(res.get('User_ID', 'N/A'))
 
+    # Result Only (No extra text/powered by)
     response = (
-        f"{title}\n\n"
-        f"👤 *Name:* `{name}`\n"
-        f"📞 *Phone:* {phone}\n"
-        f"🆔 *User ID:* `{user_id}`\n"
-        f"🌐 *Username:* {username}\n\n"
-        f"🛠️ *Powered by @termuxwalee*"
+        f"*{title}*\n\n"
+        f"NAME: `{name}`\n"
+        f"PHONE: {phone}\n"
+        f"USER ID: `{user_id}`\n"
+        f"USERNAME: {username}"
     )
     return response
 
 # --- 3. WEB SERVER FOR RENDER ---
 @app.route('/')
 def health_check():
-    return "Bot Status: Running", 200
+    return "ONLINE", 200
 
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
-# --- 4. KEYBOARD ---
+# --- 4. KEYBOARD (CAPITAL LETTERS & NO SYMBOLS) ---
 def main_menu():
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    btn1 = types.KeyboardButton("🚀 Search ID")
-    btn2 = types.KeyboardButton("🎯 Random")
-    btn3 = types.KeyboardButton("📊 Bot Database")
-    btn4 = types.KeyboardButton("👑 Dev")
-    btn5 = types.KeyboardButton("📡 Channel")
-    btn6 = types.KeyboardButton("🔄 Restart") # Naya Restart Button
+    btn1 = types.KeyboardButton("SEARCH ID")
+    btn2 = types.KeyboardButton("RANDOM")
+    btn3 = types.KeyboardButton("BOT DATABASE")
+    btn4 = types.KeyboardButton("DEV")
+    btn5 = types.KeyboardButton("CHANNEL")
+    btn6 = types.KeyboardButton("RESTART")
     markup.add(btn1, btn2, btn3, btn4, btn5, btn6)
     return markup
 
@@ -66,62 +72,57 @@ def main_menu():
 def start(message):
     bot.send_message(
         message.chat.id, 
-        "👋 *Welcome Back\\!*\n\nNiche diye gaye options se search shuru karein\\.",
-        parse_mode="MarkdownV2", 
+        "Your Welcome In OisntBot Made By @TFQdeadlox636",
         reply_markup=main_menu()
     )
 
 @bot.message_handler(func=lambda message: True)
 def handle_buttons(message):
     chat_id = message.chat.id
-    if message.text == "🚀 Search ID":
-        msg = bot.send_message(chat_id, "⌨️ *Enter the ID to look up:*", parse_mode="MarkdownV2")
+    if message.text == "SEARCH ID":
+        msg = bot.send_message(chat_id, "ENTER THE ID TO LOOK UP:")
         bot.register_next_step_handler(msg, process_search)
 
-    elif message.text == "🎯 Random":
-        temp_msg = bot.send_message(chat_id, "🌀 *Fetching random data...*", parse_mode="MarkdownV2")
+    elif message.text == "RANDOM":
+        temp_msg = bot.send_message(chat_id, "FETCHING DATA...")
         try:
-            # Random API call with better timeout handling
             r = requests.get(f"{BASE_URL}/random", timeout=30)
             if r.status_code == 200:
                 data = r.json()
                 if data.get("status") == "success":
-                    resp = format_result(data["result"], title="🎯 *RANDOM DATA*")
-                    bot.send_message(chat_id, resp, parse_mode="MarkdownV2")
+                    resp = format_result(data["result"], title="RANDOM DATA")
+                    bot.send_message(chat_id, resp, parse_mode="Markdown")
                     bot.delete_message(chat_id, temp_msg.message_id)
                 else:
-                    bot.edit_message_text("❌ *Database is empty or busy\\.*", chat_id, temp_msg.message_id, parse_mode="MarkdownV2")
-            else:
-                bot.edit_message_text("⚠️ *API Offline\\. Try again later\\.*", chat_id, temp_msg.message_id, parse_mode="MarkdownV2")
+                    bot.edit_message_text("DATABASE BUSY", chat_id, temp_msg.message_id)
         except:
-            bot.edit_message_text("❌ *Connection Timeout\\!*", chat_id, temp_msg.message_id, parse_mode="MarkdownV2")
+            bot.edit_message_text("TIMEOUT", chat_id, temp_msg.message_id)
 
-    elif message.text == "🔄 Restart":
-        # Wapis /start command ko trigger karega
+    elif message.text == "RESTART":
         start(message)
 
-    elif message.text == "📊 Bot Database":
+    elif message.text == "BOT DATABASE":
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("Access Database 📂", url=DB_LINK))
-        bot.send_message(chat_id, "📊 *Click below to join the Database Channel:*", reply_markup=markup, parse_mode="MarkdownV2")
+        markup.add(types.InlineKeyboardButton("ACCESS DATABASE", url=DB_LINK))
+        bot.send_message(chat_id, "CLICK BELOW TO JOIN:", reply_markup=markup)
 
-    elif message.text == "👑 Dev":
-        bot.send_message(chat_id, f"👑 *Developer:* `{DEVELOPER_ID}`", parse_mode="MarkdownV2")
+    elif message.text == "DEV":
+        bot.send_message(chat_id, f"DEVELOPER: `{DEVELOPER_ID}`", parse_mode="Markdown")
 
-    elif message.text == "📡 Channel":
+    elif message.text == "CHANNEL":
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("JOIN NOW ⚡", url=CHANNEL_LINK))
-        bot.send_message(chat_id, "📢 *Stay updated with our channel:*", reply_markup=markup, parse_mode="MarkdownV2")
+        markup.add(types.InlineKeyboardButton("JOIN NOW", url=CHANNEL_LINK))
+        bot.send_message(chat_id, "STAY UPDATED:", reply_markup=markup)
 
 def process_search(message):
     uid = message.text.strip()
     chat_id = message.chat.id
     
     if not uid.isdigit():
-        bot.send_message(chat_id, "⚠️ *Please enter numeric ID only\\!*", parse_mode="MarkdownV2")
+        bot.send_message(chat_id, "ONLY TG ID NEED TO ENTER FOR INFO")
         return
 
-    search_msg = bot.send_message(chat_id, f"🔍 *Searching for:* `{uid}`", parse_mode="MarkdownV2")
+    search_msg = bot.send_message(chat_id, f"SEARCHING: {uid}")
     
     try:
         r = requests.get(f"{BASE_URL}/search?uid={uid}", timeout=30)
@@ -129,26 +130,27 @@ def process_search(message):
             data = r.json()
             if data.get("status") == "success":
                 resp = format_result(data["result"])
-                bot.send_message(chat_id, resp, parse_mode="MarkdownV2")
+                bot.send_message(chat_id, resp, parse_mode="Markdown")
                 bot.delete_message(chat_id, search_msg.message_id)
             else:
-                bot.edit_message_text(f"❌ *ID `{uid}` not found\\.*", chat_id, search_msg.message_id, parse_mode="MarkdownV2")
+                # Custom Not Found message as requested
+                bot.edit_message_text(f"'{uid}' IS NOT IN DATABASE", chat_id, search_msg.message_id)
         else:
-            bot.edit_message_text("⚠️ *API Server error\\!*", chat_id, search_msg.message_id, parse_mode="MarkdownV2")
+            bot.edit_message_text("API ERROR", chat_id, search_msg.message_id)
     except:
-        bot.edit_message_text("⚠️ *Connection failed\\!*", chat_id, search_msg.message_id, parse_mode="MarkdownV2")
+        bot.edit_message_text("CONNECTION FAILED", chat_id, search_msg.message_id)
 
-# --- 6. STARTUP LOGIC ---
+# --- 6. STARTUP LOGIC (CLEAN 409 FIX) ---
 if __name__ == '__main__':
     Thread(target=run_flask, daemon=True).start()
     
-    print("🧹 Cleaning old sessions...")
+    print("Flushing old sessions...")
     try:
-        bot.remove_webhook()
-        bot.get_updates(offset=-1)
-        time.sleep(1)
+        # 409 Conflict Fix: Delete webhook and drop all pending messages
+        bot.delete_webhook(drop_pending_updates=True)
+        time.sleep(2)
     except:
         pass
 
-    print("🤖 Bot is active!")
-    bot.infinity_polling(timeout=20, long_polling_timeout=10)
+    print("Bot is active!")
+    bot.infinity_polling()
