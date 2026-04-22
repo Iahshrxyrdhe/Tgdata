@@ -3,7 +3,7 @@ import requests
 from telebot import types
 
 # --- CONFIG ---
-API_TOKEN = '8435434656:AAEzE0AK1TvNRsDzXxycUyWdMKzuES-TfAI' 
+API_TOKEN = '8435434656:AAH4FzsCtgUw4V9PXnj5GN_HJbdA659Df2s' 
 BASE_URL = "https://tfqdeadlo-tgdatabase.hf.space"
 
 DEVELOPER_ID = "@TFQdeadlox636" 
