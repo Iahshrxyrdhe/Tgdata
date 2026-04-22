@@ -1,38 +1,32 @@
 import os
 import telebot
 import requests
-import sqlite3
 from flask import Flask
 from threading import Thread
 from telebot import types
-from huggingface_hub import hf_hub_download
 
-# --- 1. WEB SERVER FOR RENDER ---
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "Bot is Alive and Running!"
-
-def run():
-    # Render automatically provides a PORT
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.daemon = True
-    t.start()
-
-# --- 2. BOT CONFIGURATION ---
-API_TOKEN = '8435434656:AAH4FzsCtgUw4V9PXnj5GN_HJbdA659Df2s' # @BotFather wala token
-BASE_URL = "https://tfqdeadlo-tgdatabase.hf.space" # Tumhara HF Space URL
+# --- 1. CONFIGURATION ---
+API_TOKEN = '8435434656:AAH4FzsCtgUw4V9PXnj5GN_HJbdA659Df2s'  # BotFather wala token
+BASE_URL = "https://tfqdeadlo-tgdatabase.hf.space"
 DEVELOPER_ID = "@TFQdeadlox636"
 CHANNEL_LINK = "https://t.me/termuxwalee"
 
+# --- 2. FLASK SERVER (For Render Port Binding) ---
+app = Flask(__name__)
+
+@app.route('/')
+def health_check():
+    return "Bot is Active!", 200
+
+def run_flask():
+    # Render automatically sets the PORT environment variable
+    port = int(os.environ.get("PORT", 10000))
+    print(f"📡 Flask is binding to port {port}")
+    app.run(host='0.0.0.0', port=port)
+
+# --- 3. BOT LOGIC ---
 bot = telebot.TeleBot(API_TOKEN)
 
-# --- 3. KEYBOARD ---
 def main_menu():
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     btn1 = types.KeyboardButton("🔍 Search ID")
@@ -41,8 +35,6 @@ def main_menu():
     btn4 = types.KeyboardButton("📢 Channel")
     markup.add(btn1, btn2, btn3, btn4)
     return markup
-
-# --- 4. HANDLERS ---
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -76,15 +68,15 @@ def handle_buttons(message):
                         f"🌐 User: @{res.get('Username', 'N/A')}")
                 bot.send_message(chat_id, resp, parse_mode="Markdown")
         except:
-            bot.send_message(chat_id, "⚠️ Server is waking up. Please try again in 10 seconds.")
+            bot.send_message(chat_id, "⚠️ API Server is waking up. Try again in 10 seconds.")
 
     elif text == "👨‍💻 Developer":
-        bot.send_message(chat_id, f"👨‍💻 **Developer:** {DEVELOPER_ID}\n\nContact for support.")
+        bot.send_message(chat_id, f"👨‍💻 **Developer:** {DEVELOPER_ID}")
 
     elif text == "📢 Channel":
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("Join Now 🚀", url=CHANNEL_LINK))
-        bot.send_message(chat_id, "📢 **Join @termuxwalee for updates:**", reply_markup=markup, parse_mode="Markdown")
+        bot.send_message(chat_id, "📢 **Join @termuxwalee:**", reply_markup=markup, parse_mode="Markdown")
 
 def process_search(message):
     uid = message.text.strip()
@@ -107,11 +99,15 @@ def process_search(message):
         else:
             bot.send_message(message.chat.id, "❌ Not Found.")
     except:
-        bot.send_message(message.chat.id, "⚠️ Connection Error. Bot waking up...")
+        bot.send_message(message.chat.id, "⚠️ Connection Error.")
 
-# --- 5. EXECUTION ---
+# --- 4. STARTUP ---
 if __name__ == '__main__':
-    keep_alive() # Starts Flask on Render's Port
+    # Start Flask in background
+    flask_thread = Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+
     print("🤖 Bot is starting...")
-    # Using infinity_polling to handle network glitches
-    bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    # Use infinity_polling to keep it alive
+    bot.infinity_polling()
