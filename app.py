@@ -17,27 +17,33 @@ bot = telebot.TeleBot(API_TOKEN)
 app = Flask(__name__)
 
 # --- 2. FORMATTING LOGIC ---
-def format_result(res, title="RESULT FOUND"):
-    # Pattern Recognition for different keys
-    raw = {str(k).lower(): v for k, v in res.items()}
-    
-    phone = str(raw.get('phone', 'N/A')).strip()
-    if phone != 'N/A' and not phone.startswith('+'):
+def format_result(res, title="🔍 RESULT FOUND"):
+    # API ke response se data nikalna
+    phone = str(res.get('phone', 'N/A')).strip()
+    if phone != 'N/A' and phone != "" and not phone.startswith('+'):
         phone = f"+{phone}"
 
-    username = str(raw.get('username', 'N/A')).strip()
-    if username != 'N/A' and not username.startswith('@'):
+    username = str(res.get('username', 'N/A')).strip()
+    if username != 'N/A' and username != "" and not username.startswith('@'):
         username = f"@{username}"
 
-    name = f"{raw.get('first_name', 'N/A')} {raw.get('last_name', '')}".strip()
-    user_id = str(raw.get('user_id', 'N/A'))
+    first_name = res.get('first_name', '')
+    last_name = res.get('last_name', '')
+    name = f"{first_name} {last_name}".strip() or "N/A"
+    
+    user_id = str(res.get('user_id', 'N/A'))
+    status = res.get('status', 'N/A')
 
     return (
-        f"*{title}*\n\n"
-        f"NAME: `{name}`\n"
-        f"PHONE: {phone}\n"
-        f"USER ID: `{user_id}`\n"
-        f"USERNAME: {username}"
+        f"*{title}*\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"👤 **NAME:** `{name}`\n"
+        f"📞 **PHONE:** `{phone}`\n"
+        f"🆔 **USER ID:** `{user_id}`\n"
+        f"🌐 **USERNAME:** {username}\n"
+        f"📝 **STATUS:** `{status}`\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"Powered By @TFQdeadlox636"
     )
 
 # --- 3. WEB SERVER FOR RENDER ---
@@ -60,88 +66,89 @@ def main_menu():
 def start(message):
     bot.send_message(
         message.chat.id, 
-        "Your Welcome In OisntBot Made By @TFQdeadlox636",
-        reply_markup=main_menu()
+        "🚀 **Welcome to OsintBot!**\n\nSearch 429 Million+ Telegram Records in seconds.",
+        reply_markup=main_menu(),
+        parse_mode="Markdown"
     )
 
 @bot.message_handler(func=lambda message: True)
 def handle_buttons(message):
     chat_id = message.chat.id
     if message.text == "SEARCH ID":
-        msg = bot.send_message(chat_id, "ENTER THE ID TO LOOK UP:")
+        msg = bot.send_message(chat_id, "⌨️ **ENTER THE TELEGRAM ID TO LOOK UP:**", parse_mode="Markdown")
         bot.register_next_step_handler(msg, process_search)
 
     elif message.text == "RANDOM":
-        temp_msg = bot.send_message(chat_id, "🎲 FETCHING RANDOM DATA...")
+        temp_msg = bot.send_message(chat_id, "🎲 **FETCHING RANDOM DATA...**", parse_mode="Markdown")
         try:
-            # Random API Call
-            r = requests.get(f"{BASE_URL}/random", timeout=60)
+            # Random API Call (Sahi endpoint)
+            r = requests.get(f"{BASE_URL}/random", timeout=30)
             if r.status_code == 200:
                 data = r.json()
-                if data.get("status") == "success":
-                    # Supporting both 'result' or 'results' key
-                    res_data = data.get("results") or data.get("result")
-                    resp = format_result(res_data, title="RANDOM DATA")
+                if data.get("found") == True:
+                    res_data = data.get("data")
+                    resp = format_result(res_data, title="🎲 RANDOM DATA")
                     bot.send_message(chat_id, resp, parse_mode="Markdown")
                     bot.delete_message(chat_id, temp_msg.message_id)
                 else:
-                    bot.edit_message_text("DATABASE BUSY", chat_id, temp_msg.message_id)
+                    bot.edit_message_text("❌ Database is busy, try again.", chat_id, temp_msg.message_id)
             else:
-                bot.edit_message_text(f"API ERROR: {r.status_code}", chat_id, temp_msg.message_id)
+                bot.edit_message_text(f"⚠️ API Error: {r.status_code}", chat_id, temp_msg.message_id)
         except Exception as e:
-            bot.edit_message_text("TIMEOUT: API is waking up, try again in 10s", chat_id, temp_msg.message_id)
+            bot.edit_message_text("🕒 Timeout: API is waking up, try in 10s", chat_id, temp_msg.message_id)
 
     elif message.text == "RESTART":
         start(message)
 
     elif message.text == "BOT DATABASE":
         markup = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("ACCESS DATABASE", url=DB_LINK))
-        bot.send_message(chat_id, "CLICK BELOW TO JOIN:", reply_markup=markup)
+        bot.send_message(chat_id, "📂 **CLICK BELOW TO JOIN OUR DATABASE:**", reply_markup=markup, parse_mode="Markdown")
 
     elif message.text == "DEV":
-        bot.send_message(chat_id, f"DEVELOPER: `{DEVELOPER_ID}`", parse_mode="Markdown")
+        bot.send_message(chat_id, f"👨‍💻 **DEVELOPER:** {DEVELOPER_ID}", parse_mode="Markdown")
 
     elif message.text == "CHANNEL":
         markup = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("JOIN NOW", url=CHANNEL_LINK))
-        bot.send_message(chat_id, "STAY UPDATED:", reply_markup=markup)
+        bot.send_message(chat_id, "📢 **STAY UPDATED:**", reply_markup=markup, parse_mode="Markdown")
 
 def process_search(message):
     uid = message.text.strip()
     chat_id = message.chat.id
     
     if not uid.isdigit():
-        bot.send_message(chat_id, "ONLY TG ID NEED TO ENTER FOR INFO")
+        bot.send_message(chat_id, "❌ **Error:** Please enter a numeric Telegram ID only.")
         return
 
-    search_msg = bot.send_message(chat_id, f"🔍 SEARCHING: {uid}")
+    search_msg = bot.send_message(chat_id, f"🔍 **SEARCHING:** `{uid}`...", parse_mode="Markdown")
     
     try:
-        # Search API Call with id=
-        r = requests.get(f"{BASE_URL}/search?id={uid}", timeout=60)
+        # Search API Call (Sahi URL path format)
+        r = requests.get(f"{BASE_URL}/search/{uid}", timeout=30)
         if r.status_code == 200:
             data = r.json()
-            if data.get("status") == "success":
-                res_data = data.get("results") or data.get("result")
+            if data.get("found") == True:
+                res_data = data.get("data")
                 resp = format_result(res_data)
                 bot.send_message(chat_id, resp, parse_mode="Markdown")
                 bot.delete_message(chat_id, search_msg.message_id)
             else:
-                bot.edit_message_text(f"'{uid}' IS NOT IN DATABASE", chat_id, search_msg.message_id)
+                bot.edit_message_text(f"❌ ID `{uid}` not found in our database.", chat_id, search_msg.message_id, parse_mode="Markdown")
         else:
-            bot.edit_message_text(f"API ERROR ({r.status_code})", chat_id, search_msg.message_id)
-    except:
-        bot.edit_message_text("CONNECTION FAILED / TIMEOUT", chat_id, search_msg.message_id)
+            bot.edit_message_text(f"⚠️ API ERROR ({r.status_code})", chat_id, search_msg.message_id)
+    except Exception as e:
+        bot.edit_message_text("🔌 Connection failed. Please try again.", chat_id, search_msg.message_id)
 
 # --- 6. STARTUP ---
 if __name__ == '__main__':
+    # Start Flask in a separate thread
     Thread(target=run_flask, daemon=True).start()
     
-    # 409 Conflict Fix
+    # Fix Conflict
     try:
-        bot.delete_webhook(drop_pending_updates=True)
+        bot.remove_webhook()
         time.sleep(1)
     except:
         pass
 
-    print("Bot is active!")
-    bot.infinity_polling(timeout=20, long_polling_timeout=10)
+    print("🚀 Bot is active and ready to search!")
+    bot.infinity_polling(skip_pending=True)
