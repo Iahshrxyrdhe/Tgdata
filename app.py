@@ -7,7 +7,7 @@ from threading import Thread
 from telebot import types
 
 # --- 1. CONFIGURATION ---
-API_TOKEN = '8435434656:AAELNz0e8yd_zTee03MYX3kBZk6Do93_usk 
+API_TOKEN = '8435434656:AAELNz0e8yd_zTee03MYX3kBZk6Do93_usk'
 BASE_URL = "https://tfqdeadlo-tgdatabase.hf.space"
 DEVELOPER_ID = "@TFQdeadlox636"
 CHANNEL_LINK = "https://t.me/termuxwalee"
